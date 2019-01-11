@@ -3261,6 +3261,11 @@ namespace Bootleg.API
                         OnApiKeyInvalid?.Invoke();
                         OnReportError(err3);
                         throw err3;
+                    case HttpStatusCode.ServiceUnavailable:
+                        var err4 = new StoriesDisabledException();
+                        throw err4;
+                        //throw new Exception();
+
                     default:
                         var err2 = new Exception(resp.Content);
                         OnReportError(err2);
@@ -3685,6 +3690,7 @@ namespace Bootleg.API
         /// <returns></returns>
         public async Task ConnectForReview(bool lowbandwidth, Shoot @event, CancellationToken cancel)
         {
+            Console.WriteLine(CurrentEvent?.topics.Count());
             //stops any current uploads
             CanUpload = false;
 
@@ -3694,6 +3700,8 @@ namespace Bootleg.API
             var ev = from n in EventCache where n.Event.id == @event.id select n;
             if (ev.Count() == 1)
                 CurrentEvent = ev.First().Event;
+
+            Console.WriteLine(CurrentEvent?.topics.Count());
 
             if (!lowbandwidth)
             {
@@ -3741,6 +3749,8 @@ namespace Bootleg.API
                 lock (database)
                     database.Insert(CurrentEvent);
             }
+
+            Console.WriteLine(CurrentEvent?.topics.Count());
         }
 
         /// <summary>
@@ -4322,6 +4332,33 @@ namespace Bootleg.API
             }
         }
 
+        private void AddTopicLabels(Edit edit)
+        {
+            //new code to add topic labels:
+
+            if (CurrentEvent != null)
+            {
+                foreach (var media in edit.media)
+                {
+                    try
+                    {
+                        var foundmedia = database.Get<MediaItem>(media.id);
+                        var topicid = foundmedia.Static_Meta[$"{((!WhiteLabelConfig.PUBLIC_TOPICS) ? BootleggerClient.CurrentUser?.id : "")}-{MetaDataFields.Topics}"].Split(",");
+                        //var topicid = media.Static_Meta[]
+                        var tag = CurrentEvent.topics.Find((arg) => arg.id == topicid.First());
+                        if (tag.burn)
+                            media.tag = tag;
+                        else
+                            media.tag = null;
+                    }
+                    catch
+                    {
+                        //no topic found with this id...
+                    }
+                }
+            }
+        }
+
         /// <summary>
         /// Update an edit, but without initiating processing.
         /// </summary>
@@ -4330,22 +4367,19 @@ namespace Bootleg.API
         public async Task SaveEdit(Edit edit)
         {
             //update an edit -- but without starting it
-            //watch/saveedit
             if (edit.media.Last().id == null && string.IsNullOrEmpty(edit.media.Last().titletext))
                 edit.media.RemoveAt(edit.media.Count - 1);
 
-            //Dictionary<string, object> vars = new Dictionary<string, object>();
-            //vars.Add("title", edit.title);
-            //vars.Add("description", edit.description);
-            //vars.Add("media", edit.media);
+            AddTopicLabels(edit);
 
-            //await StartSocket();
+            Console.WriteLine(JsonConvert.SerializeObject(new SailsSocket.EditArgs() { title = edit.title, description = edit.description, media = edit.media }));
+
             var res = await GetAResponsePost(new RestRequest("/watch/saveedit/" + ((edit.id != null) ? edit.id : "")), new SailsSocket.EditArgs() { title = edit.title, description = edit.description, media = edit.media }, new CancellationTokenSource().Token);
 
-            //string res = await sails.Post("/watch/saveedit/" + ((edit.id!= null)?edit.id : ""), new SailsSocket.EditArgs() { title = edit.title, description = edit.description, media = edit.media });
             var e = await DecodeJson<Edit>(res);
-            // _myedits.Remove(e);
-            //_myedits.Add(e);
+
+            edit.id = e.id;
+
             lock (database)
             {
                 try
@@ -4394,6 +4428,8 @@ namespace Bootleg.API
             //watch/newedit
             if (edit.media.Last().id == null)
                 edit.media.RemoveAt(edit.media.Count - 1);
+
+            AddTopicLabels(edit);
 
             var res = await GetAResponsePost(new RestRequest("/watch/newedit/" + ((edit.id != null) ? edit.id : "")), new SailsSocket.EditArgs() { title = edit.title, description = edit.description, media = edit.media }, new CancellationTokenSource().Token);
 

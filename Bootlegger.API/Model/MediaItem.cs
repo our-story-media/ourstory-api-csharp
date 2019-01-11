@@ -22,6 +22,24 @@ namespace Bootleg.API.Model
         public string audio { get; set; }
         public string credits { get; set; }
 
+        [Ignore]
+        [JsonProperty("tag")]
+        public Topic tag { get; set; }
+
+        //field that is actually serialized:
+        public string tag_ser
+        {
+            get
+            {
+                return JsonConvert.SerializeObject(tag);
+            }
+            set
+            {
+                if (value != null)
+                    tag = JsonConvert.DeserializeObject<Topic>(value);
+            }
+        }
+
         public class Meta_Dic
         {
             public Meta_Dic()

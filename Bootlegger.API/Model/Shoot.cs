@@ -24,22 +24,41 @@ namespace Bootleg.API.Model
         public string name { get; set; }
         public string joincode { get; set; }
 
-        List<Topic> _topics;
-        public string topics_ser
+        public Shoot()
         {
-            get
-            {
-                return JsonConvert.SerializeObject(_topics);
-            }
-            set
-            {
-                if (value != null)
-                    _topics = JsonConvert.DeserializeObject<List<Topic>>(value);
-            }
+            //_topics = new List<Topic>();
         }
 
+        //public string topics_ser
+        //{
+        //    get
+        //    {
+        //        return JsonConvert.SerializeObject(_topics);
+        //        //return JsonConvert.SerializeObject(new List<Topic>()
+        //        //{
+        //           //     new Topic() { id = "1",color="#ff00ff", values=new Dictionary<string, string>(){{"en","ONLY ONE"} } }
+        //           //});
+        //    }
+        //    set
+        //    {
+        //        if (value != null)
+        //           _topics = JsonConvert.DeserializeObject<List<Topic>>(value);
+        //    }
+        //}
+
+        //private List<Topic> _topics = new List<Topic>();
+
+        //[Ignore]
+        //public List<Topic> topics { get => _topics; set => _topics = value; }
+
         [Ignore]
-        public List<Topic> topics { get { return _topics; } set { _topics = value; } }
+        public List<Topic> topics { get; set; }
+
+        //{ get {
+        //        return new List<Topic>() {
+        //    new Topic() { id = "1",color="#ff00ff", values=new Dictionary<string, string>(){{"en","asdasd"} } }
+        //};
+        //} }
 
         [Ignore]
         public DateTime? RealStarts
