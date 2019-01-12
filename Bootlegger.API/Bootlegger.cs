@@ -3717,7 +3717,8 @@ namespace Bootleg.API
                         CurrentEvent.numberofcontributors = tmpCurrentEvent.numberofcontributors;
                     }
 
-                    CurrentEvent.localroleimage = CurrentEvent.roleimg;
+                    if (string.IsNullOrEmpty(CurrentEvent.localroleimage))
+                        CurrentEvent.localroleimage = CurrentEvent.roleimg;
                 }
                 catch (Exception)
                 {
