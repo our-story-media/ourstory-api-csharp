@@ -9,9 +9,6 @@ namespace Bootleg.API.Exceptions
 {
     public class ServerErrorException : Exception
     {
-        public ServerErrorException(string e) : base(e)
-        {
-
-        }
+     
     }
 }

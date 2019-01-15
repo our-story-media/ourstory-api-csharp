@@ -1511,6 +1511,12 @@ namespace Bootleg.API
                 {
                     CurrentEvent.numberofclips = dat.numberofclips;
                     CurrentEvent.numberofcontributors = dat.numberofcontributors;
+                    CurrentEvent.publicview = dat.publicview;
+                    CurrentEvent.publicedit = dat.publicedit;
+                    CurrentEvent.ispublic = dat.ispublic;
+                    CurrentEvent.topics = dat.topics;
+                    CurrentEvent.name = dat.name;
+
                     AddEventToHistory(CurrentEvent);
                 }
 
@@ -1609,7 +1615,7 @@ namespace Bootleg.API
             }
             else
             {
-                throw new Bootleg.API.Exceptions.ServerErrorException("Cannot Connect to Shoot");
+                throw new Bootleg.API.Exceptions.ServerErrorException();
             }
         }
 
@@ -2573,7 +2579,7 @@ namespace Bootleg.API
 
             if (!InBackground)
             { 
-                if (old.publicshare != newevent.publicshare || old.publicview != newevent.publicview || string.Compare(old.release, newevent.release) > 0)
+                if (old.publicshare != newevent.publicshare || string.Compare(old.release, newevent.release) > 0)
                 {
                     ischanged = true;
                     OnPermissionsChanged?.Invoke();
@@ -2874,7 +2880,7 @@ namespace Bootleg.API
             lock (database)
             {
                 var ed = database.Get<Edit>(obj.id);
-                if (ed.progress != obj.progress || ed.fail != obj.fail)
+                if (ed.progress != obj.progress || ed.failed != obj.failed)
                 {
                     database.Update(obj);
                     var theedit = database.Get<Edit>(obj.id);
@@ -3142,19 +3148,15 @@ namespace Bootleg.API
                         OnReportError(err);
                         throw err;
                     case HttpStatusCode.Forbidden:
-                        var err4 = new ApiKeyException("Invalid User (lost session)");
+                        var err4 = new SessionLostException();
                         OnReportError(err4);
                         OnSessionLost?.Invoke();
                         throw err4;
                     case HttpStatusCode.InternalServerError:
-                        var err1 = new ServerErrorException(resp.Content);
+                    case HttpStatusCode.NotFound:
+                        var err1 = new ServerErrorException();
                         OnReportError(err1);
                         throw err1;
-                    case HttpStatusCode.NotFound:
-                        var err3 = new ApiKeyException("Invalid API Key");
-                        OnApiKeyInvalid?.Invoke();
-                        OnReportError(err3);
-                        throw err3;
                     default:
                         var err2 = new Exception(resp.Content);
                         OnReportError(err2);
@@ -3198,15 +3200,15 @@ namespace Bootleg.API
                         OnApiKeyInvalid?.Invoke();
                         OnReportError(err);
                         throw err;
+                    case HttpStatusCode.Forbidden:
+                        var err4 = new SessionLostException();
+                        OnReportError(err4);
+                        OnSessionLost?.Invoke();
+                        throw err4;
                     case HttpStatusCode.InternalServerError:
-                        var err1 = new ServerErrorException(resp.Content);
+                        var err1 = new ServerErrorException();
                         OnReportError(err1);
                         throw err1;
-                    case HttpStatusCode.NotFound:
-                        var err3 = new ApiKeyException("Invalid API Key");
-                        OnApiKeyInvalid?.Invoke();
-                        OnReportError(err3);
-                        throw err3;
                     default:
                         var err2 = new Exception(resp.Content);
                         OnReportError(err2);
@@ -3253,12 +3255,10 @@ namespace Bootleg.API
                         OnReportError(err);
                         throw err;
                     case HttpStatusCode.InternalServerError:
-                        var err1 = new ServerErrorException(resp.Content);
-                        OnReportError(err1);
-                        throw err1;
                     case HttpStatusCode.NotFound:
-                        var err3 = new ApiKeyException("Invalid API Key");
-                        OnApiKeyInvalid?.Invoke();
+                        //var err3 = new ApiKeyException("Invalid API Key");
+                        var err3 = new ServerErrorException();
+                        //OnApiKeyInvalid?.Invoke();
                         OnReportError(err3);
                         throw err3;
                     case HttpStatusCode.ServiceUnavailable:
@@ -3588,7 +3588,7 @@ namespace Bootleg.API
                             where n.media != null && n.media.Count > 0
                             group n by (n.EditStatus) into newGroup
                             orderby newGroup.Key
-                            select newGroup).ToDictionary(g => g.Key, g => g.OrderByDescending(o => o.fail).ThenByDescending(o => o.progress).ThenByDescending(o => o.createdAt).ToList());
+                            select newGroup).ToDictionary(g => g.Key, g => g.OrderByDescending(o => o.failed).ThenByDescending(o => o.progress).ThenByDescending(o => o.createdAt).ToList());
                 }
             }
         }
@@ -3601,7 +3601,7 @@ namespace Bootleg.API
             get
             {
                 //if public editing -- list all media from this shoot:
-                if (CurrentEvent.publicedit || CurrentEvent.publicview)
+                if (CurrentEvent.publicedit)
                 {
                     lock (database)
                         return (from n in database.Table<MediaItem>()
@@ -3794,7 +3794,8 @@ namespace Bootleg.API
 
         private bool IsEditable(MediaItem n)
         {
-            return (n.Status == MediaItem.MediaStatus.DONE && (!string.IsNullOrEmpty(n.lowres) && n.MediaType == Shot.ShotTypes.VIDEO) || n.MediaType == Shot.ShotTypes.AUDIO);
+            var canuse = (CurrentEvent?.publicedit ?? false) || CurrentUser.id == n.id;
+            return (n.Status == MediaItem.MediaStatus.DONE && (!string.IsNullOrEmpty(n.lowres) && n.MediaType == Shot.ShotTypes.VIDEO) || n.MediaType == Shot.ShotTypes.AUDIO) && canuse;
         }
 
         private bool TopicFilter(MediaItem n, List<string> filter)
@@ -3912,21 +3913,12 @@ namespace Bootleg.API
                                 group n by n.Contributor into newGroup
                                 orderby newGroup.Key
                                 select newGroup)
-                                //.OrderBy(MeFirstSort)
-                                //.OrderBy(a => (a.Key == CurrentUser.displayName) ? 2 : 1)
-                                //.ThenBy(a => a)
                                 .ToDictionary(
                                     g => g.Key,
                                     g => (dir == MediaItemFilterDirection.ASCENDING) ? g.OrderBy(o => o.CreatedAt).Where(IsEditable).ToList() : g.OrderByDescending(o => o.CreatedAt).Where(IsEditable).ToList())
                                     .OrderBy(a => (a.Key == CurrentUser.displayName) ? 1 : 2)
                                     //.ThenBy(a=>a)
                                     .ToDictionary(g=>g.Key,g=>g.Value);
-                        //return (
-                        //    from n in database.Table<MediaItem>()
-                        //    where n.event_id == CurrentEvent.id && n.Contributor != null && n.Contributor != ""
-                        //    group n by n.created_by into newGroup
-                        //    orderby newGroup.Key
-                        //    select newGroup).OrderBy(o => o.Key).ToDictionary(g => g.Key, g => g.ToList());
                 }
             }
         }
@@ -4103,11 +4095,9 @@ namespace Bootleg.API
                             database.Update(r);
                         }
 
-
-
-                        if (r.progress != mm.progress || r.status != mm.status || r.code != mm.code || r.path != mm.path || r.fail != mm.fail)
+                        if (r.progress != mm.progress || r.status != mm.status || r.code != mm.code || r.path != mm.path || r.failed != mm.failed)
                         {
-                            Console.WriteLine(mm.progress);
+                            //Console.WriteLine(mm.progress);
                             OnEditUpdated?.Invoke(r);
                         }
                     }
@@ -4235,7 +4225,7 @@ namespace Bootleg.API
             lock (database)
                 alledits = database.Table<Edit>().ToList();
 
-            edits = (from n in alledits where n.user_id == CurrentUser.id && n.progress < 97 && !n.fail select n.id).ToArray();
+            edits = (from n in alledits where n.user_id == CurrentUser.id && n.progress < 97 && !n.failed select n.id).ToArray();
             //edits = (from n in database.Table<Edit>() where n.user_id == CurrentUser.id && n.progress < 98 && !n.failed select n.id).ToArray();
             //find all edits that are not complete, and register with the server to get updates on their progress...
             //}
@@ -4271,7 +4261,7 @@ namespace Bootleg.API
                 lock (database)
                     alledits = database.Table<Edit>().ToList();
 
-                var unfinished = (from n in alledits where n.user_id == CurrentUser.id && n.progress < 97 && !n.fail select n.id).ToArray();
+                var unfinished = (from n in alledits where n.user_id == CurrentUser.id && n.progress < 97 && !n.failed select n.id).ToArray();
                 //if (unfinished.Length == 0)
                 //{
                 //    keepgoing = false;
@@ -4308,7 +4298,7 @@ namespace Bootleg.API
                 lock (database)
                     alledits = database.Table<Edit>().ToList();
 
-                edits = (from n in alledits where n.user_id == CurrentUser.id && n.progress < 97 && !n.fail select n.id).ToArray();
+                edits = (from n in alledits where n.user_id == CurrentUser.id && n.progress < 97 && !n.failed select n.id).ToArray();
                 //edits = (from n in database.Table<Edit>() where n.user_id == CurrentUser.id && n.progress < 98 && !n.failed select n.id).ToArray();
                 //find all edits that are not complete, and register with the server to get updates on their progress...
                 //}
@@ -4373,7 +4363,7 @@ namespace Bootleg.API
 
             AddTopicLabels(edit);
 
-            Console.WriteLine(JsonConvert.SerializeObject(new SailsSocket.EditArgs() { title = edit.title, description = edit.description, media = edit.media }));
+            //Console.WriteLine(JsonConvert.SerializeObject(new SailsSocket.EditArgs() { title = edit.title, description = edit.description, media = edit.media }));
 
             var res = await GetAResponsePost(new RestRequest("/watch/saveedit/" + ((edit.id != null) ? edit.id : "")), new SailsSocket.EditArgs() { title = edit.title, description = edit.description, media = edit.media }, new CancellationTokenSource().Token);
 
@@ -4412,7 +4402,7 @@ namespace Bootleg.API
             //string res = await sails.Post("/watch/restartedit/" + ((edit.id != null) ? edit.id : ""), new SailsSocket.EditArgs() { });
             //var e = await DecodeJson<Edit>(res);
             edit.progress = 0;
-            edit.fail = false;
+            edit.failed = false;
             lock (database)
                 database.Update(edit);
             RegisterForEditUpdates();

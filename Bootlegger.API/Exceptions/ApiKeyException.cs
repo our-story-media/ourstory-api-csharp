@@ -9,6 +9,11 @@ namespace Bootleg.API.Exceptions
 {
     public class ApiKeyException : Exception
     {
+        public ApiKeyException()
+        {
+
+        }
+
         public ApiKeyException(string e) : base(e)
         {
 

@@ -53,7 +53,7 @@ namespace Bootleg.API.Model
                     return BootleggerEditStatus.Draft;
                 else
                 {
-                    if (progress > 97 && !fail)
+                    if (progress > 97 && !failed)
                         return BootleggerEditStatus.Complete;
                     else
                         return BootleggerEditStatus.InProgress;
@@ -68,7 +68,7 @@ namespace Bootleg.API.Model
         public double? progress { get; set; }
         public string status { get; set; }
         public string code { get; set; }
-        public bool fail { get; set; }
+        public bool failed { get; set; }
         public string title { get; set; }
         public string description { get; set; }
         public string path { get; set; }
