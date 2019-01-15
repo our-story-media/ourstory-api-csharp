@@ -4357,15 +4357,25 @@ namespace Bootleg.API
         /// <returns></returns>
         public async Task SaveEdit(Edit edit)
         {
-            //update an edit -- but without starting it
-            if (edit.media.Last().id == null && string.IsNullOrEmpty(edit.media.Last().titletext))
-                edit.media.RemoveAt(edit.media.Count - 1);
 
-            AddTopicLabels(edit);
+            //clone so we are not editing the same one...
+
+            var tmpEdit = new Edit
+            {
+                id = edit.id,
+                title = edit.title,
+                media = edit.media.ToList()
+            };
+
+            //update an edit -- but without starting it
+            if (tmpEdit.media.Last().id == null && string.IsNullOrEmpty(tmpEdit.media.Last().titletext))
+                tmpEdit.media.RemoveAt(edit.media.Count - 1);
+
+            AddTopicLabels(tmpEdit);
 
             //Console.WriteLine(JsonConvert.SerializeObject(new SailsSocket.EditArgs() { title = edit.title, description = edit.description, media = edit.media }));
 
-            var res = await GetAResponsePost(new RestRequest("/watch/saveedit/" + ((edit.id != null) ? edit.id : "")), new SailsSocket.EditArgs() { title = edit.title, description = edit.description, media = edit.media }, new CancellationTokenSource().Token);
+            var res = await GetAResponsePost(new RestRequest("/watch/saveedit/" + ((tmpEdit.id != null) ? tmpEdit.id : "")), new SailsSocket.EditArgs() { title = tmpEdit.title, description = tmpEdit.description, media = tmpEdit.media }, new CancellationTokenSource().Token);
 
             var e = await DecodeJson<Edit>(res);
 
