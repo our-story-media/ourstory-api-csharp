@@ -880,8 +880,8 @@ namespace Bootleg.API
         /// </summary>
         public async Task UnSelectRole(bool offline, bool alsoleaveevent)
         {
-            if (CurrentEvent?.offline ?? false)
-                SaveOfflineSelection();
+            //if (CurrentEvent?.offline ?? false)
+            SaveOfflineSelection();
 
             if (CurrentClientRole != null)
             {
@@ -1516,6 +1516,7 @@ namespace Bootleg.API
                     CurrentEvent.ispublic = dat.ispublic;
                     CurrentEvent.topics = dat.topics;
                     CurrentEvent.name = dat.name;
+                    CurrentEvent.roleimg = dat.roleimg;
 
                     AddEventToHistory(CurrentEvent);
                 }
@@ -1761,33 +1762,33 @@ namespace Bootleg.API
            
 
             //REMINDER LOGIC
-            Timer timer = new Timer(new TimerCallback((o) =>
-            {
-                lock (UploadQueue)
-                {
-                    if (UploadQueue.Count > 0)
-                    {
-                        var media = UploadQueue.OrderByDescending(r => r.CreatedAt).First();
+            //Timer timer = new Timer(new TimerCallback((o) =>
+            //{
+            //    lock (UploadQueue)
+            //    {
+            //        if (UploadQueue.Count > 0)
+            //        {
+            //            var media = UploadQueue.OrderByDescending(r => r.CreatedAt).First();
 
-                        if (media != null && media.CreatedAt < DateTime.Now.Subtract(TimeSpan.FromMinutes(TIME_SINCE_RECORDED)) && !IsRecording && lastmessage < DateTime.Now.Subtract(TimeSpan.FromMinutes(TIME_SINCE_MESSAGE)))
-                        {
-                            lastmessage = DateTime.Now;
-                            if (InBackground)
-                            {
-                                if (OnNotification != null)
-                                    //"Crew Reminder", "You have not recorded for a while, why dont you try something now"
-                                    OnNotification(BootleggerNotificationType.CrewReminder, "");
-                            }
-                            else
-                            {
-                                if (OnMessage != null)
-                                    //"You have not recorded for a while, why dont you try something now"
-                                    OnMessage(BootleggerNotificationType.CrewReminder, "", false, false, true);
-                            }
-                        }
-                    }
-                }
-            }), null, 0, (int)TimeSpan.FromMinutes(TIME_CHECK_INTERVAL).TotalMilliseconds);
+            //            if (media != null && media.CreatedAt < DateTime.Now.Subtract(TimeSpan.FromMinutes(TIME_SINCE_RECORDED)) && !IsRecording && lastmessage < DateTime.Now.Subtract(TimeSpan.FromMinutes(TIME_SINCE_MESSAGE)))
+            //            {
+            //                lastmessage = DateTime.Now;
+            //                if (InBackground)
+            //                {
+            //                    if (OnNotification != null)
+            //                        //"Crew Reminder", "You have not recorded for a while, why dont you try something now"
+            //                        OnNotification(BootleggerNotificationType.CrewReminder, "");
+            //                }
+            //                else
+            //                {
+            //                    if (OnMessage != null)
+            //                        //"You have not recorded for a while, why dont you try something now"
+            //                        OnMessage(BootleggerNotificationType.CrewReminder, "", false, false, true);
+            //                }
+            //            }
+            //        }
+            //    }
+            //}), null, 0, (int)TimeSpan.FromMinutes(TIME_CHECK_INTERVAL).TotalMilliseconds);
         }
 
 
