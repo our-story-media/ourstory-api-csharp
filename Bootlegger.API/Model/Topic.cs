@@ -13,7 +13,12 @@ namespace Bootleg.API.Model
 
         public string GetLocalisedTagName(string locale)
         {
-            return values[locale] ?? values[values.Keys.First()];
+            if (values.ContainsKey(locale))
+            {
+                return values[locale];
+            }
+            else
+                return values[values.Keys.First()];
         }
 
         public Topic()

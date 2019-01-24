@@ -64,6 +64,7 @@ namespace Bootleg.API.Model
         //public BootleggerEditStatus EditStatus { get set; }
 
         public DateTime createdAt { get; set; }
+        public DateTime updatedAt { get; set; }
         public string shortlink { get; set; }
         public double? progress { get; set; }
         public string status { get; set; }
