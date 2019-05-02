@@ -1711,28 +1711,29 @@ namespace Bootleg.API
 
             //Console.WriteLine("OFFLINE CONNECT CACHED SHOTS: " + CurrentEvent.shottypes.Count);
 
-            if (CurrentClientRole == null)
-            {
-                SaveOfflineSelection();
-                throw new RoleNotSelectedException();
-            }
+            //if (CurrentClientRole == null)
+            //{
+            //    //SaveOfflineSelection();
+            //    //throw new RoleNotSelectedException();
+            //    CurrentClientRole = CurrentEvent.roles.First();
+            //}
 
             //link shots to role for offline connected one:
-            CurrentClientRole._shots.Clear();
-            foreach (var s in CurrentClientRole.shot_ids)
-            {
-                var shot = (from n in CurrentEvent.shottypes where n.id == s select n);
-                if (shot.Count() == 1)
-                    CurrentClientRole._shots.Add(shot.First());
-            }
+            //CurrentClientRole._shots.Clear();
+            //foreach (var s in CurrentClientRole.shot_ids)
+            //{
+            //    var shot = (from n in CurrentEvent.shottypes where n.id == s select n);
+            //    if (shot.Count() == 1)
+            //        CurrentClientRole._shots.Add(shot.First());
+            //}
 
-            if (CurrentClientRole._shots.Count == 0)
-            {
-                foreach (var s in CurrentEvent.shottypes)
-                {
-                    CurrentClientRole._shots.Add(s);
-                }
-            }
+            //if (CurrentClientRole._shots.Count == 0)
+            //{
+            //    foreach (var s in CurrentEvent.shottypes)
+            //    {
+            //        CurrentClientRole._shots.Add(s);
+            //    }
+            //}
 
 
             CurrentEvent.CurrentMode = CurrentEvent.generalrule;
@@ -3602,7 +3603,7 @@ namespace Bootleg.API
             get
             {
                 //if public editing -- list all media from this shoot:
-                if (CurrentEvent.publicedit)
+                if (CurrentEvent?.publicedit ?? false)
                 {
                     lock (database)
                         return (from n in database.Table<MediaItem>()
