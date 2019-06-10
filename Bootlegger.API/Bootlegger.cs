@@ -1822,17 +1822,26 @@ namespace Bootleg.API
         public bool CheckLocalIP()
         {
             IPAddress[] addresses = Dns.GetHostAddresses(Dns.GetHostName());
-            string ipAddress = string.Empty;
-            if (addresses != null && addresses[0] != null)
+           // string ipAddress = string.Empty;
+
+            foreach (var address in addresses)
             {
-                ipAddress = addresses[0].ToString();
-                return ipAddress.StartsWith("10.10.10",StringComparison.InvariantCulture);
+                if (address.ToString().StartsWith("10.10.10", StringComparison.InvariantCulture))
+                    return true;
             }
-            else
-            {
-                ipAddress = null;
-                return false;
-            }
+
+            return false;
+
+            //if (addresses != null && addresses[0] != null)
+            //{
+            //    ipAddress = addresses[0].ToString();
+            //    return ipAddress.StartsWith("10.10.10",StringComparison.InvariantCulture);
+            //}
+            //else
+            //{
+            //    ipAddress = null;
+            //    return false;
+            //}
         }
 
         //4 connection
