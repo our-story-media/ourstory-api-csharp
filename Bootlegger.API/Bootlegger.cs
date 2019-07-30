@@ -11,6 +11,7 @@ using Microsoft.AppCenter.Analytics;
 using Newtonsoft.Json;
 using RestSharp;
 using RestSharp.Serializers;
+//using Rssdp;
 #if SOCKETS
 using SocketIOClient;
 #endif
@@ -83,6 +84,10 @@ namespace Bootleg.API
 
         public void UploadFileEx(MediaItem media, string url, string fileFormName, string contenttype, NameValueCollection querystring, CookieContainer cookies)
         {
+#if DEBUG
+            //Thread.Sleep(100000);
+#endif
+
             var targetfilename = DateTime.Now.Ticks + "_" + new FileInfo(media.Filename).Name;
             //RestClient client = new RestClient();
             RestRequest request = new RestRequest($"api/media/signupload/{media.event_id}");
@@ -1831,17 +1836,6 @@ namespace Bootleg.API
             }
 
             return false;
-
-            //if (addresses != null && addresses[0] != null)
-            //{
-            //    ipAddress = addresses[0].ToString();
-            //    return ipAddress.StartsWith("10.10.10",StringComparison.InvariantCulture);
-            //}
-            //else
-            //{
-            //    ipAddress = null;
-            //    return false;
-            //}
         }
 
         //4 connection
@@ -1862,7 +1856,7 @@ namespace Bootleg.API
         //        {
         //            //"urn:bootlegger:device:server:1" 
         //            //"uuid:30f4d4fe-59e6-11e8-9c2d-fa7ae01bbebc"
-        //            var foundDevices = await deviceLocator.SearchAsync("uuid:30f4d4fe-59e6-11e8-9c2d-fa7ae01bbebc",TimeSpan.FromSeconds(20)); // Can pass search arguments here (device type, uuid). No arguments means all devices.
+        //            var foundDevices = await deviceLocator.SearchAsync("urn:bootlegger:device:server:1", TimeSpan.FromSeconds(20)); // Can pass search arguments here (device type, uuid). No arguments means all devices.
         //            //var mydevice = from n in foundDevices where n.NotificationType == "urn:bootlegger:device:server:1" select n;
         //            //var mydevice = from n in foundDevices where n.NotificationType == "urn:bootlegger:device:server:1" select n;
         //            Uri url;
@@ -1896,11 +1890,6 @@ namespace Bootleg.API
         //            {
         //                throw new Exception("Invalid server information in packet");
         //            }
-        //            //}
-        //            //else
-        //            //{
-        //            //    throw new Exception("No hosts found");
-        //            //}
         //        }
         //    }
         //    catch (Exception e)
@@ -2498,9 +2487,11 @@ namespace Bootleg.API
             {
                 try
                 {
-                    EventCache = JsonConvert.DeserializeObject<List<OfflineSelection>>(File.ReadAllText(cachedir + "/bootlegger/eventcache.json")).Where(o => o.Event.id != null).ToList();
+                    var text = File.ReadAllText(cachedir + "/bootlegger/eventcache.json");
+
+                    EventCache = JsonConvert.DeserializeObject<List<OfflineSelection>>(text).Where(o => o?.Event?.id != null).ToList();
                 }
-                catch
+                catch (Exception e)
                 {
 
                 }
@@ -2701,7 +2692,8 @@ namespace Bootleg.API
                 else
                 {
                     //evc.LoggedOut = false;
-                    evc.Event = CurrentEvent;
+                    if (CurrentEvent!=null)
+                        evc.Event = CurrentEvent;
                     evc.User = CurrentUser;
                     //Console.WriteLine("SAVING ROLE IN CACHE: " + CurrentClientRole);
                     if ((evc.Event.offline && CurrentClientRole != null) || !evc.Event.offline)
@@ -3221,7 +3213,7 @@ namespace Bootleg.API
                         OnReportError(err1);
                         throw err1;
                     default:
-                        var err2 = new Exception(resp.Content);
+                        var err2 = new NoNetworkException();
                         OnReportError(err2);
                         throw err2;
                 }
@@ -3273,12 +3265,12 @@ namespace Bootleg.API
                         OnReportError(err3);
                         throw err3;
                     case HttpStatusCode.ServiceUnavailable:
-                        var err4 = new StoriesDisabledException();
+                        var err4 = new StoriesDisabledException(resp.Content);
                         throw err4;
                         //throw new Exception();
 
                     default:
-                        var err2 = new Exception(resp.Content);
+                        var err2 = new NoNetworkException();
                         OnReportError(err2);
                         throw err2;
                 }
@@ -3706,7 +3698,7 @@ namespace Bootleg.API
             CanUpload = false;
 
             //TODO: THIS INFORMATION SHOULD BE CACHED??
-
+            var test = EventCache;
             //try get the event from the cache
             var ev = from n in EventCache where n.Event.id == @event.id select n;
             if (ev.Count() == 1)
@@ -4406,28 +4398,28 @@ namespace Bootleg.API
             }
         }
 
-        /// <summary>
-        /// Restart a failed edit.
-        /// </summary>
-        /// <param name="edit"></param>
-        /// <returns></returns>
-        public async Task RestartEdit(Edit edit)
-        {
-            //returns code, sharing link?
-            //watch/newedit
-            if (edit.media.Last().id == null)
-                edit.media.RemoveAt(edit.media.Count - 1);
+        ///// <summary>
+        ///// Restart a failed edit.
+        ///// </summary>
+        ///// <param name="edit"></param>
+        ///// <returns></returns>
+        //public async Task RestartEdit(Edit edit)
+        //{
+        //    //returns code, sharing link?
+        //    //watch/newedit
+        //    if (edit.media.Last().id == null)
+        //        edit.media.RemoveAt(edit.media.Count - 1);
 
-            var res = await GetAResponsePost(new RestRequest("/watch/restartedit/" + ((edit.id != null) ? edit.id : "")), new SailsSocket.EditArgs() { }, new CancellationTokenSource().Token);
+        //    var res = await GetAResponsePost(new RestRequest("/watch/restartedit/" + ((edit.id != null) ? edit.id : "")), new SailsSocket.EditArgs() { }, new CancellationTokenSource().Token);
 
-            //string res = await sails.Post("/watch/restartedit/" + ((edit.id != null) ? edit.id : ""), new SailsSocket.EditArgs() { });
-            //var e = await DecodeJson<Edit>(res);
-            edit.progress = 0;
-            edit.failed = false;
-            lock (database)
-                database.Update(edit);
-            RegisterForEditUpdates();
-        }
+        //    //string res = await sails.Post("/watch/restartedit/" + ((edit.id != null) ? edit.id : ""), new SailsSocket.EditArgs() { });
+        //    //var e = await DecodeJson<Edit>(res);
+        //    edit.progress = 0;
+        //    edit.failed = false;
+        //    lock (database)
+        //        database.Update(edit);
+        //    RegisterForEditUpdates();
+        //}
 
         /// <summary>
         /// Save and then start processing an edit. Also registers for push updates about this edit.
@@ -4443,22 +4435,44 @@ namespace Bootleg.API
 
             AddTopicLabels(edit);
 
-            var res = await GetAResponsePost(new RestRequest("/watch/newedit/" + ((edit.id != null) ? edit.id : "")), new SailsSocket.EditArgs() { title = edit.title, description = edit.description, media = edit.media }, new CancellationTokenSource().Token);
+            Edit returnededit = edit;
+            bool cantprocess = false;
+
+            try
+            {
+                var res = await GetAResponsePost(new RestRequest("/watch/newedit/" + ((edit.id != null) ? edit.id : "")), new SailsSocket.EditArgs() { title = edit.title, description = edit.description, media = edit.media }, new CancellationTokenSource().Token);
+                returnededit = await DecodeJson<Edit>(res);
+            }
+            catch (StoriesDisabledException e)
+            {
+                returnededit = await DecodeJson<Edit>(e.Content);
+                returnededit.progress = null;
+                returnededit.code = null;
+                returnededit.shortlink = null;
+                cantprocess = true;
+            }
 
             //string res = await sails.Post("/watch/newedit/" + ((edit.id != null) ? edit.id : ""), new SailsSocket.EditArgs() { title = edit.title, description = edit.description, media = edit.media });
-            var e = await DecodeJson<Edit>(res);
+            
+
+            edit.id = returnededit.id;
+
             lock (database)
             {
                 try
                 {
                     var there = database.Get<Edit>(edit.id);
-                    database.Update(e);
-                }
+                    database.Update(returnededit);
+                }   
                 catch
                 {
-                    database.Insert(e);
+                    database.Insert(returnededit);
                 }
             }
+
+            if (cantprocess)
+                throw new StoriesDisabledException();
+
             RegisterForEditUpdates();
         }
         #endregion
