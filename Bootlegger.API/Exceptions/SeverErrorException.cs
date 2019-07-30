@@ -9,6 +9,6 @@ namespace Bootleg.API.Exceptions
 {
     public class ServerErrorException : Exception
     {
-     
+        
     }
 }
