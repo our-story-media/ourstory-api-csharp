@@ -4337,7 +4337,7 @@ namespace Bootleg.API
                     try
                     {
                         var foundmedia = database.Get<MediaItem>(media.id);
-                        var topicid = foundmedia.Static_Meta[$"{((!WhiteLabelConfig.PUBLIC_TOPICS) ? BootleggerClient.CurrentUser?.id : "")}-{MetaDataFields.Topics}"].Split(",");
+                        var topicid = foundmedia.Static_Meta[$"{((!WhiteLabelConfig.PUBLIC_TOPICS) ? BootleggerClient.CurrentUser?.id : "")}-{MetaDataFields.Topics}"].Split(',');
                         //var topicid = media.Static_Meta[]
                         var tag = CurrentEvent.topics.Find((arg) => arg.id == topicid.First());
                         if (tag.burn)
