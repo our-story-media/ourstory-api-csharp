@@ -3172,7 +3172,7 @@ namespace Bootleg.API
             }
             catch (Exception e)
             {
-                throw e;
+                throw new NoNetworkException();
             }
         }
 
@@ -4360,7 +4360,6 @@ namespace Bootleg.API
         /// <returns></returns>
         public async Task SaveEdit(Edit edit)
         {
-
             //clone so we are not editing the same one...
 
             var tmpEdit = new Edit
