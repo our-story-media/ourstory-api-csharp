@@ -813,71 +813,75 @@ namespace Bootleg.API
         /// <returns></returns>
         public async Task<RoleStatus> SelectRole(Role role, bool confirmed, CancellationToken cancel)
         {
-            if (CurrentEvent != null && OfflineMode)
+            if (CurrentEvent==null)
             {
-                CurrentClientRole = role;
-                //link shots to role for offline connected one:
-                CurrentClientRole._shots.Clear();
-                foreach (var s in CurrentClientRole.shot_ids)
-                {
-                    var shot = (from n in CurrentEvent.shottypes where n.id == s select n);
-                    if (shot.Count() == 1)
-                        CurrentClientRole._shots.Add(shot.First());
-                }
-
-                if (CurrentClientRole._shots.Count == 0)
-                {
-                    foreach (var s in CurrentEvent.shottypes)
-                    {
-                        CurrentClientRole._shots.Add(s);
-                    }
-                }
-
-                CurrentEvent.CurrentMode = CurrentEvent.generalrule;
-
-                //we are offline, so do this without contacting server...
-                SaveOfflineSelection();
-
-                return new RoleStatus() { State = RoleStatus.RoleState.OK };
+                return new RoleStatus() { State = RoleStatus.RoleState.NO };
             }
-            else
-            {
 
-                var result = await GetAResponsePost(new RestRequest("/event/chooserole"), new Bootleg.API.SailsSocket.JsonMessage() { eventid = CurrentEvent.id, roleid = role.id, confirm = confirmed }, cancel);
-                //string result = await sails.GetResult("/event/chooserole", new Bootleg.API.SailsSocket.JsonMessage() { eventid = CurrentEvent.id, roleid = role.id, confirm = confirmed });
-                try
+           
+            CurrentClientRole = role;
+            //link shots to role for offline connected one:
+            CurrentClientRole._shots.Clear();
+            foreach (var s in CurrentClientRole.shot_ids)
+            {
+                var shot = (from n in CurrentEvent.shottypes where n.id == s select n);
+                if (shot.Count() == 1)
+                    CurrentClientRole._shots.Add(shot.First());
+            }
+
+            if (CurrentClientRole._shots.Count == 0)
+            {
+                foreach (var s in CurrentEvent.shottypes)
                 {
-                    RoleResult r = await DecodeJson<RoleResult>(result);
-                    if (r.status == "ok")
-                    {
-                        CurrentClientRole = CurrentEvent.roles.Where(o => o.id == role.id).First();
-                        SaveOfflineSelection();
-                        OnReportLog("select role " + role.id);
-                        return new RoleStatus() { State = RoleStatus.RoleState.OK };
-                    }
-                    else if (r.status == "confirm")
-                    {
-                        return new RoleStatus() { State = RoleStatus.RoleState.CONFIRM, Message = r.msg };
-                    }
-                    else
-                    {
-                        //if its a fail -- check that its not because the server somehow lost the user between connecting to the event and selecting a role...
-                        if (r.status == "fail" && CurrentEvent.offline)
-                        {
-                            await ConnectToEvent(CurrentEvent, true, cancel);
-                            return await SelectRole(role, confirmed, cancel);
-                        }
-                        else
-                        {
-                            return new RoleStatus() { State = RoleStatus.RoleState.NO, Message = r.msg };
-                        }
-                    }
-                }
-                catch (Exception e)
-                {
-                    return new RoleStatus() { State = RoleStatus.RoleState.NO, Message = e.Message };
+                    CurrentClientRole._shots.Add(s);
                 }
             }
+
+            CurrentEvent.CurrentMode = CurrentEvent.generalrule;
+
+            //we are offline, so do this without contacting server...
+            SaveOfflineSelection();
+
+            return new RoleStatus() { State = RoleStatus.RoleState.OK };
+            //}
+            //else
+            //{
+
+            //    var result = await GetAResponsePost(new RestRequest("/event/chooserole"), new Bootleg.API.SailsSocket.JsonMessage() { eventid = CurrentEvent.id, roleid = role.id, confirm = confirmed }, cancel);
+            //    //string result = await sails.GetResult("/event/chooserole", new Bootleg.API.SailsSocket.JsonMessage() { eventid = CurrentEvent.id, roleid = role.id, confirm = confirmed });
+            //    try
+            //    {
+            //        RoleResult r = await DecodeJson<RoleResult>(result);
+            //        if (r.status == "ok")
+            //        {
+            //            CurrentClientRole = CurrentEvent.roles.Where(o => o.id == role.id).First();
+            //            SaveOfflineSelection();
+            //            OnReportLog("select role " + role.id);
+            //            return new RoleStatus() { State = RoleStatus.RoleState.OK };
+            //        }
+            //        else if (r.status == "confirm")
+            //        {
+            //            return new RoleStatus() { State = RoleStatus.RoleState.CONFIRM, Message = r.msg };
+            //        }
+            //        else
+            //        {
+            //            //if its a fail -- check that its not because the server somehow lost the user between connecting to the event and selecting a role...
+            //            if (r.status == "fail" && CurrentEvent.offline)
+            //            {
+            //                await ConnectToEvent(CurrentEvent, true, cancel);
+            //                return await SelectRole(role, confirmed, cancel);
+            //            }
+            //            else
+            //            {
+            //                return new RoleStatus() { State = RoleStatus.RoleState.NO, Message = r.msg };
+            //            }
+            //        }
+            //    }
+            //    catch (Exception e)
+            //    {
+            //        return new RoleStatus() { State = RoleStatus.RoleState.NO, Message = e.Message };
+            //    }
+            //}
         }
 
         /// <summary>
