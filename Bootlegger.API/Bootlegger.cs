@@ -1403,13 +1403,19 @@ namespace Bootleg.API
 						zip.UnzipFileTo(storagelocation.FullName + "/bootlegger/", true);
 						zip.UnzipCloseFile();
 #else
-                        ZipFile zip = ZipFile.Read(zipfile.FullName);
-                        zip.ExtractAll(storagelocation.FullName + "/bootlegger/", ExtractExistingFileAction.OverwriteSilently);
+
+
+                        //ZipFile.ExtractToDirectory(zipPath, extractPath);
+                        Bootleg.API.Decompress.Decompress decompress = new Bootleg.API.Decompress.Decompress(zipfile.FullName, storagelocation.FullName + "/bootlegger/");
+                        decompress.UnZip();
+
+                        //ZipFile zip = ZipFile.Read(zipfile.FullName);
+                        //zip.ExtractAll(storagelocation.FullName + "/bootlegger/", ExtractExistingFileAction.OverwriteSilently);
 #endif
 
                         SetLocalImagePaths();
                     }
-                    catch (Exception)
+                    catch (Exception ff)
                     {
                         //Log.Error("bootlegger",ex.Message);
                         //Log.Error("bootlegger", "cant unzip");
