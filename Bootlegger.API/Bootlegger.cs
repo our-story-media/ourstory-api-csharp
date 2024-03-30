@@ -598,10 +598,10 @@ namespace Bootleg.API
 
                 GetAResponsePost(req, body, new CancellationTokenSource().Token).ContinueWith(OnMyAsyncMethodFailed, TaskContinuationOptions.OnlyOnFaulted);
             }
-            else
-            {
-                Analytics.TrackEvent(action,data.ToDictionary((key)=>key.Key,(val)=>val.Value));
-            }
+            // else
+            // {
+            //     Analytics.TrackEvent(action,data.ToDictionary((key)=>key.Key,(val)=>val.Value));
+            // }
         }
 
         public static void OnMyAsyncMethodFailed(Task task)
