@@ -7,7 +7,6 @@ using Bootleg.API.Exceptions;
 using Bootleg.API.Model;
 using GcmSharp.Serialization;
 using Ionic.Zip;
-using Microsoft.AppCenter.Analytics;
 using Newtonsoft.Json;
 using RestSharp;
 using RestSharp.Serializers;
